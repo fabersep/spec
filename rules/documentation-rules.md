@@ -67,3 +67,9 @@ docs/
 - `verified` — Approved by the project owner and aligned with codebase reality.
 - `stale` — Code has diverged; refresh required.
 - `deprecated` — Replaced or retired (link to replacement).
+
+---
+
+## 5. Plugin Skill Naming Convention
+
+- Every skill in `fabersep/spec` **must** use the `faber-` prefix (e.g. `faber-init-arch`, `faber-new-feature`, `faber-discuss`) to prevent naming collisions across global agent plugins.
