@@ -14,7 +14,7 @@ last_updated: 2026-11-27
 ## 1. Executive Summary & Vision
 
 ### 1.1 What is FaberSEP Spec?
-FaberSEP Spec (`@fabersep/spec`) is **Layer 1** of the open-source (Apache-2.0) FaberSEP engineering context stack (`@fabersep/memory` -> `@fabersep/spec` -> `@fabersep/atlas` -> `@fabersep/blueprints`). It packages project-agnostic documentation templates, governance rules, and five `faber-*` AI coding agent skills into a single zero-dependency npm package with a one-command interactive installer (`npx @fabersep/spec init`).
+FaberSEP Spec (`@fabersep/spec`) is a standalone, open-source (Apache-2.0) spec-driven documentation kit for any software project. It packages project-agnostic documentation templates, governance rules, and five `faber-*` AI coding agent skills into a single zero-dependency npm package with a one-command interactive installer (`npx @fabersep/spec init`).
 
 ### 1.2 Core Value Proposition
 - **For Developers Using AI Coding Agents:** Install once with `npx @fabersep/spec init` across Antigravity, Claude Code / Desktop, OpenAI Codex, and Cursor, then turn any undocumented repo or raw feature idea into structured, verifiable specs in minutes.

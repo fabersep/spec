@@ -2,8 +2,6 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-> Layer 1 of the FaberSEP engineering context stack (`@fabersep/memory` -> `@fabersep/spec` -> `@fabersep/atlas` -> `@fabersep/blueprints`).
-
 **Spec-driven engineering templates, governance rules, and `faber-*` agent skills — installed across all your AI coding tools with one command.**
 
 Zero runtime dependencies. Zero template files dumped into your repositories. Zero idle token overhead. Run `npx @fabersep/spec init`, pick your AI coding tools from an interactive checklist, and start turning any codebase or raw idea into verified Architecture docs, Master PRDs, and atomic Given-When-Then BDD specs.
@@ -255,12 +253,11 @@ node src/cli.mjs init --link
 
 ## Works Great With
 
-FaberSEP tools are designed to compose cleanly as a layered engineering context stack:
+`@fabersep/spec` works completely standalone in any repository. If you want optional companion tools from the same open-source suite:
 
-- **Layer 0 — [FaberSEP Memory (`@fabersep/memory`)](https://github.com/fabersep/memory):** Prefix-cache-first, Git-backed Markdown memory across all your AI coding tools.
-- **Layer 1 — FaberSEP Spec (`@fabersep/spec`):** This repository — architecture, Master PRD, feature BDDs, and cross-model review.
-- **Layer 2 — [FaberSEP Atlas (`@fabersep/atlas`)](https://github.com/fabersep/atlas):** Deterministic AST code map & MCP server. When Atlas MCP is connected, `faber-init-arch`, `faber-init-prd`, and `faber-extract-features` automatically use it to map codebases with far fewer tokens.
-- **Layer 3 — [FaberSEP Blueprints](https://fabersep.dev):** Build-verified project scaffolds and recipes.
+- **[FaberSEP Memory (`@fabersep/memory`)](https://github.com/fabersep/memory):** Prefix-cache-first, Git-backed Markdown memory across all your AI coding tools.
+- **[FaberSEP Atlas (`@fabersep/atlas`)](https://github.com/fabersep/atlas):** Deterministic AST code map & MCP server. When Atlas MCP is connected, `faber-init-arch`, `faber-init-prd`, and `faber-extract-features` automatically use it to map codebases with far fewer tokens.
+- **[FaberSEP Blueprints](https://fabersep.dev):** Build-verified project scaffolds and recipes.
 
 ---
 
