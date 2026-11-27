@@ -16,11 +16,11 @@ last_updated: 2026-11-26
 
 | Scenario ID | Requirement | Group | Summary | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `AC-01` | `FR-01` | Plugin Discovery | Antigravity discovers `faber-spec` with all four `faber-*` skills | `Pending` |
-| `AC-02` | `FR-02` | Clean Repo | Running a skill writes only generated `docs/` with no template clutter | `Pending` |
+| `AC-01` | `FR-01` | Plugin Discovery | Antigravity discovers `faber-spec` with all four `faber-*` skills | `Verified` |
+| `AC-02` | `FR-02` | Clean Repo | Running a skill writes only generated `docs/` with no template clutter | `Verified` |
 | `AC-03` | `FR-02` | Lean Context | Plugin adds no always-on rules file when idle | `Verified` |
-| `AC-04` | `FR-03` | Brownfield Init | `faber-init-arch` and `faber-init-prd` produce grounded docs without Atlas MCP | `Pending` |
-| `AC-05` | `FR-04` | Feature Extraction | `faber-extract-features` generates feature index, PRDs, and traceable BDDs | `Pending` |
+| `AC-04` | `FR-03` | Brownfield Init | `faber-init-arch` and `faber-init-prd` produce grounded docs without Atlas MCP | `Verified` |
+| `AC-05` | `FR-04` | Feature Extraction | `faber-extract-features` generates feature index, PRDs, and traceable BDDs | `Verified` |
 | `AC-06` | `FR-04` | New Feature Flow | `faber-new-feature` asks clarifying questions when scope is incomplete before writing specs | `Pending` |
 
 ---

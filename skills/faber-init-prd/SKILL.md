@@ -9,9 +9,9 @@ Generate or refresh `docs/master-prd.md` in the active repository, defining **WH
 
 ## Step 1: Load Rules and Template
 
-Read these two files relative to this `SKILL.md` before writing anything:
-1. `../../rules/documentation-rules.md`
-2. `../../templates/master-prd.md`
+Read these two files relative to this `SKILL.md` (or from `~/.faber/spec/` if installed as a standalone skill in Codex/Cursor) before writing anything:
+1. `../../rules/documentation-rules.md` (fallback: `~/.faber/spec/rules/documentation-rules.md`)
+2. `../../templates/master-prd.md` (fallback: `~/.faber/spec/templates/master-prd.md`)
 
 ## Step 2: Gather Ground Truth
 

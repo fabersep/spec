@@ -9,9 +9,9 @@ Generate or refresh `docs/architecture.md` in the active repository, grounded st
 
 ## Step 1: Load Rules and Template
 
-Read these two files relative to this `SKILL.md` before inspecting or writing anything:
-1. `../../rules/documentation-rules.md`
-2. `../../templates/architecture.md`
+Read these two files relative to this `SKILL.md` (or from `~/.faber/spec/` if installed as a standalone skill in Codex/Cursor) before inspecting or writing anything:
+1. `../../rules/documentation-rules.md` (fallback: `~/.faber/spec/rules/documentation-rules.md`)
+2. `../../templates/architecture.md` (fallback: `~/.faber/spec/templates/architecture.md`)
 
 Follow every invariant in `documentation-rules.md` strictly.
 

@@ -18,10 +18,12 @@ Run a structured, read-only second-opinion loop with an external reviewer CLI (`
 
 ## Step 1: Load Governance Rules and Templates
 
-Locate the plugin root relative to this `SKILL.md` (`../..`), and keep these paths ready for Phase 2 (`spec`):
-1. `../../rules/documentation-rules.md`
-2. `../../templates/feature-prd.md`
-3. `../../templates/feature-bdd.md`
+Locate the plugin root relative to this `SKILL.md` (`../..`, or `~/.faber/spec/` when installed as a standalone skill in Codex/Cursor), and keep these paths ready for Phase 2 (`spec`):
+1. `../../rules/documentation-rules.md` (fallback: `~/.faber/spec/rules/documentation-rules.md`)
+2. `../../templates/feature-prd.md` (fallback: `~/.faber/spec/templates/feature-prd.md`)
+3. `../../templates/feature-bdd.md` (fallback: `~/.faber/spec/templates/feature-bdd.md`)
+
+The helper scripts `discuss_round.py` and `discuss_log.py` live directly alongside this `SKILL.md` (and at `~/.faber/spec/skills/faber-discuss/`).
 
 Check the active repository's entry file (`AGENTS.md` or `CLAUDE.md`) and `docs/` layout so generated specs follow project conventions.
 

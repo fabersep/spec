@@ -2,29 +2,32 @@
 id: project.architecture
 type: architecture
 status: draft
-last_updated: 2026-11-26
+last_updated: 2026-11-27
 ---
 
 # FaberSEP Spec — Architecture Guide
 
-> **Purpose:** Documents the verified technical architecture of `fabersep/spec` — plugin layout, skill-to-template loading flow, interfaces, and architectural invariants. Grounded strictly in repository reality.
+> **Purpose:** Documents the verified technical architecture of `fabersep/spec` (`@fabersep/spec`) — zero-dependency CLI installer, canonical `~/.faber/spec/` store, multi-agent plugin/skill layout, `faber-discuss` runner, and architectural invariants. Grounded strictly in repository reality.
 
 ---
 
 ## 1. System Overview & Runtime Topology
 
-FaberSEP Spec (`v0.1.0`) is a zero-runtime, pure-Markdown agent plugin repository. It requires no background daemon, build step, or external network access.
+FaberSEP Spec (`v0.2.0`) combines:
+1. **A pure-Markdown spec kit** (`rules/`, `templates/`, `skills/faber-*/`) plus native plugin manifests (`plugin.json` for Antigravity, `.claude-plugin/plugin.json` for Claude Code / Desktop).
+2. **A zero-dependency Node.js (>=20) CLI installer** (`src/cli.mjs`, `src/installer.mjs`, `src/prompt.mjs`) distributed as `@fabersep/spec` on npm. It stages a single canonical copy under `~/.faber/spec/` and links it into whichever AI coding tools the user selects (Antigravity, Claude Code / Desktop, OpenAI Codex, Cursor).
+3. **A Python 3 read-only reviewer runner** (`skills/faber-discuss/discuss_round.py`, `discuss_log.py`) used only when the user explicitly invokes `faber-discuss`.
 
-Antigravity discovers the plugin directly from the repository root (`plugin.json` + `skills/`). Each skill loads its companion rules and templates on demand from relative paths inside the plugin directory, keeping idle token overhead at zero and adding no template files to the target user's repository.
+No background daemon, database, build step, or runtime npm dependencies are required.
 
 ```mermaid
 flowchart TD
-    Host["Agent Host (Antigravity Plugin Loader)"] --> Manifest["plugin.json"]
-    Host --> Skills["skills/faber-*/SKILL.md"]
-    Skills -->|Reads on demand| Rules["rules/documentation-rules.md"]
-    Skills -->|Reads on demand| Templates["templates/*.md"]
-    Skills -->|Optional structural map| Atlas["Atlas MCP (if connected)"]
-    Skills -->|Writes generated docs only| Target["Target Repo: docs/"]
+    CLI["npx @fabersep/spec init<br/>(Node.js >= 20, zero deps)"] -->|Stages canonical copy| Store["~/.faber/spec/<br/>(rules, templates, skills, manifests)"]
+    Store -->|Plugin symlink| AGY["Antigravity<br/>~/.gemini/config/plugins/faber-spec"]
+    Store -->|Plugin symlink| CC["Claude Code / Desktop<br/>~/.claude/skills/faber-spec"]
+    Store -->|Per-skill symlinks| CDX["OpenAI Codex<br/>~/.codex/skills/faber-*"]
+    Store -->|Per-skill symlinks| CUR["Cursor<br/>~/.cursor/skills/faber-*"]
+    AGY & CC & CDX & CUR -->|Writes generated docs only| Target["Target Repo: docs/"]
 ```
 
 ---
@@ -33,22 +36,36 @@ flowchart TD
 
 ```text
 spec/
-├── plugin.json                         # Antigravity plugin manifest (global name: faber-spec)
-├── README.md                           # User-facing overview and install instructions
-├── LICENSE                             # Apache-2.0 license
+├── package.json                          # @fabersep/spec npm package (ESM, zero deps, bin: faber-spec)
+├── plugin.json                           # Antigravity plugin manifest (name: faber-spec)
+├── .claude-plugin/
+│   └── plugin.json                       # Claude Code / Desktop plugin manifest
+├── README.md                             # User-facing quickstart, mental model, CLI reference
+├── LICENSE                               # Apache-2.0 license
+├── src/
+│   ├── cli.mjs                           # CLI entry point: init, status, uninstall
+│   ├── installer.mjs                     # Engine detection, ~/.faber/spec staging, symlink/copy wiring
+│   └── prompt.mjs                        # Zero-dep interactive TTY multi-select checkbox prompt
 ├── rules/
-│   └── documentation-rules.md          # Core spec-driven governance & invariants
+│   └── documentation-rules.md            # Core spec-driven governance & faber- prefix rule
 ├── templates/
-│   ├── architecture.md                 # Project-agnostic architecture template
-│   ├── master-prd.md                   # Project-agnostic Master PRD template
-│   ├── feature-prd.md                  # Feature PRD template (FR-XX)
-│   └── feature-bdd.md                  # Given-When-Then BDD template (AC-XX)
+│   ├── architecture.md                   # Project-agnostic architecture template
+│   ├── master-prd.md                     # Project-agnostic Master PRD template
+│   ├── feature-prd.md                    # Feature PRD template (FR-XX)
+│   └── feature-bdd.md                    # Given-When-Then BDD template (AC-XX)
 ├── skills/
-│   ├── faber-init-arch/SKILL.md        # Architecture synthesis (brownfield & greenfield)
-│   ├── faber-init-prd/SKILL.md         # Master PRD synthesis
-│   ├── faber-extract-features/SKILL.md # Brownfield feature PRD + BDD extraction
-│   └── faber-new-feature/SKILL.md      # Greenfield feature clarification + PRD/BDD generation
-└── docs/                               # FaberSEP Spec's own dogfooded specs
+│   ├── faber-init-arch/SKILL.md          # Architecture synthesis (brownfield & greenfield)
+│   ├── faber-init-prd/SKILL.md           # Master PRD synthesis
+│   ├── faber-extract-features/SKILL.md   # Brownfield feature PRD + BDD extraction
+│   ├── faber-new-feature/SKILL.md        # Greenfield feature clarification + PRD/BDD generation
+│   └── faber-discuss/
+│       ├── SKILL.md                      # Cross-model design & spec review protocol
+│       ├── discuss_round.py              # Read-only reviewer runner (agy / claude CLI)
+│       └── discuss_log.py                # Structured JSONL run ledger & stats generator
+├── tests/
+│   ├── test_installer.test.mjs           # Node.js built-in tests for installer, CLI, manifests & skills
+│   └── test_faber_discuss.py             # Python unittest suite for discuss_round & discuss_log
+└── docs/                                 # FaberSEP Spec's own dogfooded specs
     ├── architecture.md
     ├── master-prd.md
     └── features/
@@ -56,27 +73,48 @@ spec/
 
 | Module / Directory | Responsibility | Allowed Dependencies | Notes |
 | :--- | :--- | :--- | :--- |
-| `plugin.json` | Declares plugin identity, metadata, and starter prompts for Antigravity | None | Uses only loader-supported top-level fields |
-| `rules/` | Holds universal documentation invariants loaded on demand | None | Intentionally not `rules/AGENTS.md` to avoid per-turn prompt bloat |
+| `src/` | Interactive CLI installer, engine detection, staging, status, uninstall | Node.js built-ins only (`fs`, `os`, `path`, `readline`, `url`) | Zero runtime dependencies, zero build step |
+| `plugin.json`, `.claude-plugin/plugin.json` | Native plugin manifests for Antigravity and Claude Code/Desktop | None | Versions stay synchronized with `package.json` |
+| `rules/` | Universal documentation invariants loaded on demand | None | Never injected globally on idle turns |
 | `templates/` | Canonical Markdown skeletons for generated project docs | None | Project-type agnostic; zero stack-specific hardcoding |
-| `skills/faber-*/` | Procedural instructions for each workflow command | `rules/`, `templates/`, optional Atlas MCP | All skills prefixed with `faber-` to prevent collisions |
+| `skills/faber-*/` | Procedural instructions for each workflow command | `rules/`, `templates/`, optional Atlas MCP; `faber-discuss` uses Python 3 stdlib + `agy`/`claude` CLI | All skills prefixed with `faber-`; dual path lookup (`../../` and `~/.faber/spec/`) |
+| `tests/` | Automated Node + Python test suites | `node:test`, Python `unittest` | Zero external test framework dependencies |
 | `docs/` | Living specs for `fabersep/spec` itself | Follows `templates/` and `rules/` | Dogfooding reference |
 
 ---
 
 ## 3. Core Data & Execution Flows
 
-### Flow 1: Running a `faber-*` Skill in Any Target Project
+### Flow 1: One-Command Install (`npx @fabersep/spec init`)
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant CLI as src/cli.mjs
+    participant Inst as src/installer.mjs
+    participant Store as ~/.faber/spec/
+    participant Tools as Agent Config Dirs
+    Dev->>CLI: npx @fabersep/spec init
+    CLI->>Inst: detectEngines()
+    Inst-->>CLI: Detected tools (~/.gemini, ~/.claude, ~/.codex, ~/.cursor)
+    CLI->>Dev: Interactive checkbox list (detected pre-checked)
+    Dev-->>CLI: Toggle & press Enter
+    CLI->>Inst: installEngines(selected)
+    Inst->>Store: Stage rules, templates, skills, manifests + meta
+    Inst->>Tools: Link plugin dir (Antigravity/Claude) or skill dirs (Codex/Cursor)
+    Inst-->>Dev: Summary + next step prompt
+```
+
+### Flow 2: Running a `faber-*` Skill in Any Target Project
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
     participant Agent as Coding Agent
-    participant Plugin as faber-spec Plugin
+    participant Store as ~/.faber/spec (or plugin root)
     participant Atlas as Atlas MCP (Optional)
     participant Repo as Target Project Repo
     Dev->>Agent: Invoke faber-init-arch / faber-init-prd / etc.
-    Agent->>Plugin: Read skills/<skill>/SKILL.md
-    Agent->>Plugin: Read ../../rules/documentation-rules.md & ../../templates/*.md
+    Agent->>Store: Read skills/<skill>/SKILL.md
+    Agent->>Store: Read rules/documentation-rules.md & templates/*.md
     opt Atlas MCP connected
         Agent->>Atlas: map / hubs / brief
         Atlas-->>Agent: Compact structural map
@@ -90,12 +128,19 @@ sequenceDiagram
 
 ## 4. Public Interfaces & Contracts
 
-- **Plugin Manifest (`plugin.json`):** Antigravity JSONC manifest (`name: "faber-spec"`, `version: "0.1.0"`).
+- **CLI (`faber-spec` / `npx @fabersep/spec`):**
+  - `init [--yes|-y] [--engine <list>] [--dry-run] [--link] [--undo]` — Interactive or non-interactive multi-agent setup
+  - `status` — Prints `~/.faber/spec/` version, skills, and per-engine link status
+  - `uninstall [--engine <list>] [--dry-run]` — Cleanly removes managed links and `~/.faber/spec/`
+  - `--help`, `--version`
+- **Plugin Manifests:**
+  - `plugin.json` (Antigravity) and `.claude-plugin/plugin.json` (Claude Code / Desktop), synchronized to `0.2.0`
 - **Agent Skills (`skills/faber-*/SKILL.md`):**
   - `faber-init-arch` -> writes `docs/architecture.md`
   - `faber-init-prd` -> writes `docs/master-prd.md`
   - `faber-extract-features` -> writes `docs/features/README.md` and `docs/features/<NN>-<slug>/{prd.md,acceptance_criteria.md}`
   - `faber-new-feature` -> clarifies scope, then writes `docs/features/<NN>-<slug>/{prd.md,acceptance_criteria.md}` and updates `docs/features/README.md`
+  - `faber-discuss` -> runs a read-only cross-model design/spec review loop via `discuss_round.py` and logs structured stats via `discuss_log.py`
 - **Generated Document Frontmatter Contract:** Every generated document starts with YAML frontmatter containing `id`, `type`, `status`, and `last_updated`.
 
 ---
@@ -104,12 +149,12 @@ sequenceDiagram
 
 | Concern | Status | Implementation / Approach | Location |
 | :--- | :--- | :--- | :--- |
-| **Error Handling** | `N/A` | Pure Markdown plugin; no executable runtime code in `v0.1.0` | — |
-| **Configuration & Defaults** | `Implemented` | Zero-config plugin discovery via `plugin.json` | `plugin.json` |
-| **Caching & Incrementality** | `Implemented` | On-demand skill loading; zero always-on rule injection | `skills/`, `rules/` |
-| **Security & Privacy** | `Implemented` | Local-only static Markdown; zero network calls, zero telemetry | Entire repo |
-| **Logging & Diagnostics** | `N/A` | No runtime process in `v0.1.0` | — |
-| **Testing & Quality Gates** | `Partial` | Manual dogfooding on `spec` and `atlas`; automated spec linter planned for `v0.2` | `GAP-01` |
+| **Error Handling** | `Implemented` | Explicit CLI exit codes, unknown-engine validation, Windows symlink-to-copy fallback, non-destructive `.bak` backup for unmanaged directories; structured exit codes (`0,2,3,4,5`) in `discuss_round.py` | `src/cli.mjs`, `src/installer.mjs`, `skills/faber-discuss/discuss_round.py` |
+| **Configuration & Defaults** | `Implemented` | Zero-config engine auto-detection (`~/.gemini`, `~/.claude`, `~/.codex`, `~/.cursor`) + `FABER_USER_HOME` override for isolated tests | `src/installer.mjs` |
+| **Caching & Incrementality** | `Implemented` | On-demand skill loading (zero always-on rule injection); 7-minute warm prompt-cache tracking in `faber-discuss` | `skills/`, `skills/faber-discuss/discuss_round.py` |
+| **Security & Privacy** | `Implemented` | 100% local execution, zero telemetry, zero external npm dependencies; strict read-only tool allow/deny lists for `faber-discuss` reviewers | Entire repo, `skills/faber-discuss/discuss_round.py` |
+| **Logging & Diagnostics** | `Implemented` | Structured per-run JSONL ledger (`run.json`, `rounds.jsonl`, `rulings.jsonl`, `stats.md`) for `faber-discuss`; `faber-spec status` for install diagnostics | `skills/faber-discuss/discuss_log.py`, `src/cli.mjs` |
+| **Testing & Quality Gates** | `Implemented` | Built-in Node.js test suite (`tests/test_installer.test.mjs`) + Python unittest suite (`tests/test_faber_discuss.py`) run via `npm test` | `tests/` |
 
 ---
 
@@ -117,17 +162,19 @@ sequenceDiagram
 
 ### Invariants (Must Hold)
 - **Zero target-repo pollution:** Skills write only generated project docs under `docs/`; they never copy templates, rules, or plugin manifests into the user's repository.
-- **Zero idle token tax:** Do not add a global always-on `rules/AGENTS.md` unless explicitly needed; rules load only when a `faber-*` skill runs.
+- **Zero idle token tax:** Do not add an always-on global rules file; rules load only when a `faber-*` skill runs.
+- **Zero runtime npm dependencies:** `src/` uses only Node.js >=20 standard library modules so `npx @fabersep/spec init` stays fast and auditable.
 - **Collision-safe naming:** Every skill name must start with `faber-`.
-- **Single source of truth:** Future layers (Claude Code plugin manifest, thin MCP server) must serve the exact same `rules/` and `templates/` files without duplicating content.
+- **Single source of truth:** All four supported agent environments point to the same canonical `~/.faber/spec/` (or local checkout with `--link`) without duplicating content across `rules/` and `templates/`.
 
 ### Prohibited Practices
 - ❌ **Hardcoding stack or domain assumptions in core templates:** Never require mobile monetization, specific cloud vendors, or UI screens in base templates.
-- ❌ **Embedding internal agent-engine macros:** Never use non-standard engine directives (such as `@TopologyFULL`) that external coding agents cannot execute.
+- ❌ **Embedding internal agent-engine macros:** Never use non-standard engine directives that external coding agents cannot execute.
+- ❌ **Overwriting unmanaged user directories silently:** Always back up any non-managed directory before linking.
 
 ---
 
 ## 7. Technical Debt & Open Architectural Questions
 
-- **GAP-01:** Automated validation script / CI check (frontmatter check, placeholder check, `plugin.json` schema check) is not yet implemented; planned alongside the thin MCP layer (`v0.2`).
-- **GAP-02:** Claude Code plugin manifest (`.claude-plugin/`) is deferred to the next iteration after Antigravity dogfooding on Atlas.
+- **GAP-01:** Automated GitHub Actions CI workflow and thin MCP server (`@fabersep/spec mcp`) for deterministic external spec linting are deferred to a later release (`v0.3`).
+- **GAP-02 (Resolved in v0.2.0):** Multi-agent support (Claude Code / Desktop `.claude-plugin/plugin.json`, OpenAI Codex, and Cursor) is now implemented via the interactive `npx @fabersep/spec init` installer.

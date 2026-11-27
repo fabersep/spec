@@ -9,10 +9,10 @@ Discover discrete, user-facing or core domain features in an existing codebase a
 
 ## Step 1: Load Rules and Templates
 
-Read these files relative to this `SKILL.md` first:
-1. `../../rules/documentation-rules.md`
-2. `../../templates/feature-prd.md`
-3. `../../templates/feature-bdd.md`
+Read these files relative to this `SKILL.md` (or from `~/.faber/spec/` if installed as a standalone skill in Codex/Cursor) first:
+1. `../../rules/documentation-rules.md` (fallback: `~/.faber/spec/rules/documentation-rules.md`)
+2. `../../templates/feature-prd.md` (fallback: `~/.faber/spec/templates/feature-prd.md`)
+3. `../../templates/feature-bdd.md` (fallback: `~/.faber/spec/templates/feature-bdd.md`)
 
 ## Step 2: Discover Features from Codebase Reality
 
