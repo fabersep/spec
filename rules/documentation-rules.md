@@ -15,7 +15,7 @@ version: 0.2.0
 
 Every project separates three distinct kinds of truth:
 
-1. **Architecture (`docs/architecture.md`) — *HOW the system is built*:** Real directory layout, module boundaries, runtime dependencies, data flow, entry points, and constraints grounded in code.
+1. **Architecture (`docs/architecture.md`) — *HOW the system is built*:** Module boundaries, runtime dependencies, data flow, entry points, and constraints grounded in code.
 2. **Product Requirements (`docs/master-prd.md`, `docs/features/<slug>/prd.md`) — *WHAT & WHY*:** Problem statement, users/personas, capabilities, functional requirements (`FR-XX`), boundaries (non-goals), and edge cases in plain product language.
 3. **Acceptance Criteria (`docs/features/<slug>/acceptance_criteria.md`) — *HOW we verify it*:** Atomic, testable `GIVEN / WHEN / THEN` behavioral contracts (`AC-XX`) written in user/domain language — never code identifiers.
 

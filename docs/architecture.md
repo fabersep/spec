@@ -32,44 +32,7 @@ flowchart TD
 
 ---
 
-## 2. Repository Structure & Module Boundaries
-
-```text
-spec/
-├── package.json                          # @fabersep/spec npm package (ESM, zero deps, bin: faber-spec)
-├── plugin.json                           # Antigravity plugin manifest (name: faber-spec)
-├── .claude-plugin/
-│   └── plugin.json                       # Claude Code / Desktop plugin manifest
-├── README.md                             # User-facing quickstart, mental model, CLI reference
-├── LICENSE                               # Apache-2.0 license
-├── src/
-│   ├── cli.mjs                           # CLI entry point: init, status, uninstall
-│   ├── installer.mjs                     # Engine detection, ~/.faber/spec staging, symlink/copy wiring
-│   └── prompt.mjs                        # Zero-dep interactive TTY multi-select checkbox prompt
-├── rules/
-│   └── documentation-rules.md            # Core spec-driven governance & faber- prefix rule
-├── templates/
-│   ├── architecture.md                   # Project-agnostic architecture template
-│   ├── master-prd.md                     # Project-agnostic Master PRD template
-│   ├── feature-prd.md                    # Feature PRD template (FR-XX)
-│   └── feature-bdd.md                    # Given-When-Then BDD template (AC-XX)
-├── skills/
-│   ├── faber-init-arch/SKILL.md          # Architecture synthesis (brownfield & greenfield)
-│   ├── faber-init-prd/SKILL.md           # Master PRD synthesis
-│   ├── faber-extract-features/SKILL.md   # Brownfield feature PRD + BDD extraction
-│   ├── faber-new-feature/SKILL.md        # Greenfield feature clarification + PRD/BDD generation
-│   └── faber-discuss/
-│       ├── SKILL.md                      # Cross-model design & spec review protocol
-│       ├── discuss_round.py              # Read-only reviewer runner (agy / claude CLI)
-│       └── discuss_log.py                # Structured JSONL run ledger & stats generator
-├── tests/
-│   ├── test_installer.test.mjs           # Node.js built-in tests for installer, CLI, manifests & skills
-│   └── test_faber_discuss.py             # Python unittest suite for discuss_round & discuss_log
-└── docs/                                 # FaberSEP Spec's own dogfooded specs
-    ├── architecture.md
-    ├── master-prd.md
-    └── features/
-```
+## 2. Module Boundaries
 
 | Module / Directory | Responsibility | Allowed Dependencies | Notes |
 | :--- | :--- | :--- | :--- |

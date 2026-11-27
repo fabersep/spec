@@ -7,7 +7,7 @@ last_updated: YYYY-MM-DD
 
 # <Project Name> — Architecture Guide
 
-> **Purpose:** Documents the verified technical architecture of the repository — runtime environment, module boundaries, directory layout, key data flows, external interfaces, and architectural invariants. Grounded strictly in codebase reality.
+> **Purpose:** Documents the verified technical architecture of the repository — runtime environment, module boundaries, key data flows, external interfaces, and architectural invariants. Grounded strictly in codebase reality.
 
 ---
 
@@ -23,15 +23,9 @@ flowchart TD
 
 ---
 
-## 2. Repository Structure & Module Boundaries
+## 2. Module Boundaries
 
-```text
-<repo-root>/
-├── src/                # Primary source modules
-├── test/               # Automated tests & fixtures
-├── docs/               # Master PRD, architecture, and feature specs
-└── ...
-```
+> Focus on high-level module responsibilities and allowed dependencies; avoid embedding full file trees that drift quickly.
 
 | Module / Directory | Responsibility | Allowed Dependencies | Notes |
 | :--- | :--- | :--- | :--- |
