@@ -93,12 +93,10 @@ The installer automatically scans your machine for installed AI coding tools (`~
 
 ```text
 FaberSEP Spec v0.2.0 — Select AI coding tools to install into:
-Detected tools are pre-selected. Toggle any tool with Space, then press Enter.
+Detected tools are pre-selected. Uncheck any tool to skip or remove it, then press Enter.
 
   > [x] Antigravity             (detected: ~/.gemini)
     [x] Claude Code / Desktop   (detected: ~/.claude)
-    [ ] OpenAI Codex            (not found: ~/.codex)
-    [ ] Cursor                  (not found: ~/.cursor)
 
   2 selected  •  ↑/↓ move  •  Space toggle  •  a toggle all  •  Enter install  •  q cancel
 ```

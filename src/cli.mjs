@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import {
-  detectEngines,
   getPackageVersion,
   getStatus,
   installEngines,
@@ -97,8 +96,11 @@ async function runInit(flags) {
   }
 
   const version = getPackageVersion();
-  const detectedList = detectEngines();
+  const statusBefore = getStatus();
+  const detectedList = statusBefore.engines;
+  const availableList = detectedList.filter((e) => e.detected || e.installed);
   let selectedIds = flags.engines;
+  let deselectedIds = [];
 
   if (!selectedIds) {
     if (flags.yes || !process.stdin.isTTY) {
@@ -115,15 +117,23 @@ async function runInit(flags) {
         return 1;
       }
     } else {
+      const promptList = availableList.length > 0 ? availableList : detectedList;
       console.log('');
       selectedIds = await promptMultiSelect({
         title: `FaberSEP Spec v${version} — Select AI coding tools to install into:`,
-        subtitle: 'Detected tools are pre-selected. Toggle any tool with Space, then press Enter.',
-        items: detectedList.map((e) => ({
+        subtitle:
+          availableList.length > 0
+            ? 'Detected tools are pre-selected. Uncheck any tool to skip or remove it, then press Enter.'
+            : 'No AI coding tools were auto-detected. Select any tool to install into, then press Enter.',
+        items: promptList.map((e) => ({
           id: e.id,
           label: e.label,
-          hint: e.detected ? `(detected: ${e.detectHint})` : `(not found: ${e.detectHint})`,
-          checked: e.detected,
+          hint: e.installed
+            ? `(installed: ${e.detectHint})`
+            : e.detected
+              ? `(detected: ${e.detectHint})`
+              : `(${e.detectHint})`,
+          checked: e.detected || e.installed,
         })),
       });
 
@@ -131,10 +141,34 @@ async function runInit(flags) {
         console.log(dim('Cancelled. Nothing was modified.'));
         return 0;
       }
-      if (selectedIds.length === 0) {
+
+      const selectedSet = new Set(selectedIds);
+      deselectedIds = promptList
+        .filter((e) => e.installed && !selectedSet.has(e.id))
+        .map((e) => e.id);
+
+      if (selectedIds.length === 0 && deselectedIds.length === 0) {
         console.log(yellow('No tools selected. Nothing was installed.'));
         return 0;
       }
+    }
+  }
+
+  if (deselectedIds.length > 0) {
+    const removed = uninstallEngines({
+      engines: deselectedIds,
+      dryRun: flags.dryRun,
+    });
+    const prefix = flags.dryRun ? '[dry-run] Would remove' : 'Removed';
+    for (const item of removed.removed) {
+      console.log(`  ${green('✓')} ${prefix} (${item.label}): ${item.path}`);
+    }
+    if (removed.removedCanonical) {
+      console.log(`  ${green('✓')} ${prefix} canonical store: ${removed.canonicalRoot}`);
+    }
+    if (selectedIds.length === 0) {
+      console.log(dim('\nProject docs/ folders in your repositories were not touched.'));
+      return 0;
     }
   }
 

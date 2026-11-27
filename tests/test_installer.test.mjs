@@ -129,9 +129,12 @@ test('AC-06: status reports installed state and uninstall cleans up managed link
     assert.equal(byId.cursor.installedSkills.length, st.skills.length);
     assert.equal(byId.codex.installed, false);
 
-    const removed = uninstallEngines({ userHome: home });
-    assert.equal(removed.removedCanonical, true);
-    assert.ok(removed.removed.length >= 1 + st.skills.length);
+    const removed = uninstallEngines({ engines: ['cursor'], userHome: home });
+    assert.equal(removed.removedCanonical, false, 'canonical store kept while antigravity still installed');
+    assert.equal(fs.existsSync(getCanonicalRoot(home)), true);
+
+    const removedLast = uninstallEngines({ engines: ['antigravity'], userHome: home });
+    assert.equal(removedLast.removedCanonical, true, 'canonical store removed when last engine uninstalled');
     assert.equal(fs.existsSync(getCanonicalRoot(home)), false);
 
     const after = getStatus({ userHome: home });

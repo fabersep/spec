@@ -362,7 +362,21 @@ export function uninstallEngines({
   }
 
   let removedCanonical = false;
-  if (removeCanonical && (!engines || engines.length === 0) && fs.existsSync(canonicalRoot)) {
+  const remainingInstalled =
+    engines && engines.length > 0
+      ? allDefs.some((def) => {
+          if (targetIds.has(def.id)) return false;
+          if (def.mode === 'plugin') {
+            return isSymlink(def.targetPath) || fs.existsSync(def.targetPath);
+          }
+          return [...skillNames].some((skill) => {
+            const p = path.join(def.targetPath, skill);
+            return isSymlink(p) || fs.existsSync(p);
+          });
+        })
+      : false;
+
+  if (removeCanonical && !remainingInstalled && fs.existsSync(canonicalRoot)) {
     if (!dryRun) {
       fs.rmSync(canonicalRoot, { recursive: true, force: true });
     }
