@@ -201,3 +201,140 @@ test('AC-05 & repo invariants: manifests match version, all skills use faber- pr
     );
   }
 });
+
+const CLI = path.join(PACKAGE_ROOT, 'src', 'cli.mjs');
+function runCli(home, args) {
+  const env = { ...process.env, FABER_USER_HOME: home, NO_COLOR: '1' };
+  try {
+    const stdout = execFileSync(process.execPath, [CLI, ...args], { env, encoding: 'utf8', stdio: 'pipe' });
+    return { code: 0, out: stdout };
+  } catch (err) {
+    return { code: err.status, out: `${err.stdout || ''}${err.stderr || ''}` };
+  }
+}
+
+test('AC-09: init --preview writes nothing and init --apply installs like plain init', () => {
+  const home = makeTempHome();
+  try {
+    fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
+    const preview = runCli(home, ['init', '--yes', '--preview']);
+    assert.equal(preview.code, 0);
+    assert.match(preview.out, /\[dry-run\] Would install/);
+    assert.equal(fs.existsSync(getCanonicalRoot(home)), false);
+    assert.equal(fs.existsSync(path.join(home, '.claude', 'skills')), false);
+
+    const apply = runCli(home, ['init', '--yes', '--apply']);
+    assert.equal(apply.code, 0);
+    assert.match(apply.out, /Installed FaberSEP Spec/);
+    assert.equal(fs.lstatSync(path.join(home, '.claude', 'skills', 'faber-spec')).isSymbolicLink(), true);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('AC-10: init --engine= with an empty list is rejected and writes nothing', () => {
+  const home = makeTempHome();
+  try {
+    const res = runCli(home, ['init', '--engine=']);
+    assert.notEqual(res.code, 0);
+    assert.match(res.out, /Supported tools: antigravity, claude-code, codex, cursor/);
+    assert.equal(fs.existsSync(getCanonicalRoot(home)), false);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('AC-11: re-running init removes links of skills no longer shipped, keeps other faber-* skills', () => {
+  const home = makeTempHome();
+  try {
+    installEngines({ engines: ['codex'], userHome: home });
+    const skillsDir = path.join(home, '.codex', 'skills');
+    // A link an older version left for a skill that is no longer shipped.
+    fs.symlinkSync(path.join(getCanonicalRoot(home), 'skills', 'faber-retired'), path.join(skillsDir, 'faber-retired'));
+    // Another package's faber-* skill (not ours) must stay.
+    const other = path.join(home, 'other-pkg', 'faber-other');
+    fs.mkdirSync(other, { recursive: true });
+    fs.writeFileSync(path.join(other, 'SKILL.md'), '---\nname: faber-other\n---\n');
+    fs.symlinkSync(other, path.join(skillsDir, 'faber-other'));
+
+    const res = installEngines({ engines: ['codex'], userHome: home });
+    assert.deepEqual(res.results[0].staleRemoved, [path.join(skillsDir, 'faber-retired')]);
+    assert.equal(fs.existsSync(path.join(skillsDir, 'faber-retired')), false);
+    assert.equal(fs.lstatSync(path.join(skillsDir, 'faber-other')).isSymbolicLink(), true);
+    for (const skill of getSkillNames(PACKAGE_ROOT)) {
+      assert.equal(fs.existsSync(path.join(skillsDir, skill, 'SKILL.md')), true);
+    }
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('AC-12: uninstall leaves a user\'s own link at a faber-* path in place', () => {
+  const home = makeTempHome();
+  try {
+    const mine = path.join(home, 'mine', 'faber-init-arch');
+    fs.mkdirSync(mine, { recursive: true });
+    fs.writeFileSync(path.join(mine, 'notes.txt'), 'mine');
+    const skillsDir = path.join(home, '.codex', 'skills');
+    fs.mkdirSync(skillsDir, { recursive: true });
+    fs.symlinkSync(mine, path.join(skillsDir, 'faber-init-arch'));
+
+    const res = uninstallEngines({ userHome: home });
+    assert.equal(res.removed.length, 0);
+    assert.equal(fs.lstatSync(path.join(skillsDir, 'faber-init-arch')).isSymbolicLink(), true);
+    assert.equal(fs.readFileSync(path.join(mine, 'notes.txt'), 'utf8'), 'mine');
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('AC-13: status reports a folder FaberSEP Spec did not create as not managed', () => {
+  const home = makeTempHome();
+  try {
+    const foreign = path.join(home, '.claude', 'skills', 'faber-spec');
+    fs.mkdirSync(foreign, { recursive: true });
+    fs.writeFileSync(path.join(foreign, 'notes.txt'), 'x');
+
+    const st = getStatus({ userHome: home });
+    const claude = st.engines.find((e) => e.id === 'claude-code');
+    assert.equal(claude.installed, false);
+    assert.equal(claude.unmanaged, true);
+    const out = runCli(home, ['status']).out;
+    assert.match(out, /Claude Code \/ Desktop\s+not managed/);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('AC-14: after init --link, status reports the linked checkout', () => {
+  const home = makeTempHome();
+  try {
+    installEngines({ engines: ['claude-code', 'codex'], userHome: home, linkDev: true });
+    const st = getStatus({ userHome: home });
+    assert.equal(st.canonicalExists, false);
+    assert.equal(st.linkedRoot, path.resolve(PACKAGE_ROOT));
+    assert.equal(st.linkedVersion, getPackageVersion());
+    assert.equal(st.engines.find((e) => e.id === 'claude-code').installed, true);
+    assert.equal(st.engines.find((e) => e.id === 'codex').installed, true);
+    const out = runCli(home, ['status']).out;
+    assert.match(out, /Linked checkout:/);
+    assert.doesNotMatch(out, /not installed/);
+    uninstallEngines({ userHome: home });
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('AC-15: every rule declares a trigger and the Antigravity manifest has at most 3 suggested prompts', () => {
+  const agy = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, 'plugin.json'), 'utf8'));
+  assert.ok((agy.suggestedPrompts || []).length <= 3);
+  const rulesDir = path.join(PACKAGE_ROOT, 'rules');
+  for (const file of fs.readdirSync(rulesDir).filter((f) => f.endsWith('.md'))) {
+    const text = fs.readFileSync(path.join(rulesDir, file), 'utf8');
+    const front = text.match(/^---\n([\s\S]*?)\n---/);
+    assert.ok(front, `${file} needs frontmatter`);
+    assert.match(front[1], /^trigger:\s*(always_on|model_decision|glob|manual)\s*$/m, `${file} needs a trigger`);
+    // Zero idle tokens: rules load only when a skill reads them.
+    assert.doesNotMatch(front[1], /^trigger:\s*always_on/m);
+  }
+});

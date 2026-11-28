@@ -158,11 +158,15 @@ function isSymlink(p) {
   }
 }
 
-function isManagedTarget(p) {
-  if (isSymlink(p)) return true;
-  if (!fs.existsSync(p)) return false;
-  if (fs.existsSync(path.join(p, META_FILENAME))) return true;
-  const pluginJson = path.join(p, 'plugin.json');
+function isInside(child, parent) {
+  const rel = path.relative(parent, child);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+function hasOwnerMarker(dir) {
+  if (!fs.existsSync(dir)) return false;
+  if (fs.existsSync(path.join(dir, META_FILENAME))) return true;
+  const pluginJson = path.join(dir, 'plugin.json');
   if (fs.existsSync(pluginJson)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(pluginJson, 'utf8'));
@@ -171,17 +175,39 @@ function isManagedTarget(p) {
       return false;
     }
   }
-  const skillMd = path.join(p, 'SKILL.md');
-  if (fs.existsSync(skillMd) && path.basename(p).startsWith('faber-')) {
+  const skillMd = path.join(dir, 'SKILL.md');
+  if (fs.existsSync(skillMd) && path.basename(dir).startsWith('faber-')) {
     return true;
   }
   return false;
 }
 
-function linkOrCopyDir(src, dst, { dryRun = false } = {}) {
+// A path is ours only when it (or, for a link, the folder it points to) carries the
+// FaberSEP Spec marker, the faber-spec plugin manifest, or a faber-* skill. A user's
+// own folder or link is never treated as ours.
+function isManagedTarget(p, { canonicalRoot } = {}) {
+  if (isSymlink(p)) {
+    const target = path.resolve(path.dirname(p), fs.readlinkSync(p));
+    if (canonicalRoot && isInside(target, canonicalRoot)) return true;
+    let real;
+    try {
+      real = fs.realpathSync(p);
+    } catch {
+      return false; // dangling link outside our store: not ours
+    }
+    return hasOwnerMarker(real);
+  }
+  return hasOwnerMarker(p);
+}
+
+function linkTargetOf(p) {
+  return isSymlink(p) ? path.resolve(path.dirname(p), fs.readlinkSync(p)) : null;
+}
+
+function linkOrCopyDir(src, dst, { dryRun = false, canonicalRoot } = {}) {
   let backedUpTo = null;
   if (isSymlink(dst) || fs.existsSync(dst)) {
-    if (isManagedTarget(dst)) {
+    if (isManagedTarget(dst, { canonicalRoot })) {
       if (!dryRun) {
         fs.rmSync(dst, { recursive: true, force: true });
       }
@@ -205,10 +231,39 @@ function linkOrCopyDir(src, dst, { dryRun = false } = {}) {
   } catch (err) {
     if (err && (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'EXDEV')) {
       copyTree(src, dst);
+      if (!fs.existsSync(path.join(dst, META_FILENAME))) {
+        fs.writeFileSync(
+          path.join(dst, META_FILENAME),
+          JSON.stringify({ name: '@fabersep/spec', version: getPackageVersion() }, null, 2) + '\n',
+          'utf8',
+        );
+      }
       return { method: 'copy', backedUpTo };
     }
     throw err;
   }
+}
+
+// Remove faber-* entries in a per-skill tool folder that an earlier FaberSEP Spec
+// install created but the current version no longer ships. Only links into our own
+// store (or linked checkout) and copies carrying our marker are touched, so skills
+// from other packages that share the faber- prefix stay in place.
+function removeStaleSkills(dir, currentSkills, { roots, dryRun }) {
+  if (!fs.existsSync(dir)) return [];
+  const keep = new Set(currentSkills);
+  const removed = [];
+  for (const name of fs.readdirSync(dir)) {
+    if (!name.startsWith('faber-') || keep.has(name)) continue;
+    const p = path.join(dir, name);
+    const target = linkTargetOf(p);
+    const ours = target
+      ? roots.some((root) => isInside(target, path.join(root, 'skills')))
+      : fs.existsSync(path.join(p, META_FILENAME));
+    if (!ours) continue;
+    if (!dryRun) fs.rmSync(p, { recursive: true, force: true });
+    removed.push(p);
+  }
+  return removed;
 }
 
 export function installEngines({
@@ -231,12 +286,13 @@ export function installEngines({
     : stageCanonicalInstall({ userHome, sourceRoot, dryRun }).canonicalRoot;
 
   const skills = getSkillNames(linkDev ? effectiveRoot : sourceRoot);
+  const canonicalRoot = getCanonicalRoot(userHome);
   const results = [];
 
   for (const id of selectedIds) {
     const def = allDefs.get(id);
     if (def.mode === 'plugin') {
-      const outcome = linkOrCopyDir(effectiveRoot, def.targetPath, { dryRun });
+      const outcome = linkOrCopyDir(effectiveRoot, def.targetPath, { dryRun, canonicalRoot });
       results.push({
         engine: id,
         label: def.label,
@@ -252,11 +308,15 @@ export function installEngines({
       for (const skill of skills) {
         const srcSkill = path.join(effectiveRoot, 'skills', skill);
         const dstSkill = path.join(def.targetPath, skill);
-        const outcome = linkOrCopyDir(srcSkill, dstSkill, { dryRun });
+        const outcome = linkOrCopyDir(srcSkill, dstSkill, { dryRun, canonicalRoot });
         targets.push(dstSkill);
         method = outcome.method;
         if (outcome.backedUpTo) backups.push(outcome.backedUpTo);
       }
+      const staleRemoved = removeStaleSkills(def.targetPath, skills, {
+        roots: [canonicalRoot, effectiveRoot],
+        dryRun,
+      });
       results.push({
         engine: id,
         label: def.label,
@@ -264,6 +324,7 @@ export function installEngines({
         targets,
         method,
         backedUpTo: backups.length > 0 ? backups : null,
+        staleRemoved,
       });
     }
   }
@@ -290,33 +351,60 @@ export function getStatus({ userHome = getUserHome() } = {}) {
   }
 
   const expectedSkills = meta?.skills || getSkillNames(PACKAGE_ROOT);
+  const owned = (p) => (isSymlink(p) || fs.existsSync(p)) && isManagedTarget(p, { canonicalRoot });
+  const present = (p) => isSymlink(p) || fs.existsSync(p);
+  const linkedRoots = new Set();
   const engines = detectEngines(userHome).map((engine) => {
     if (engine.mode === 'plugin') {
-      const exists = isSymlink(engine.targetPath) || fs.existsSync(engine.targetPath);
-      const linkTarget = isSymlink(engine.targetPath) ? fs.readlinkSync(engine.targetPath) : null;
+      const installed = owned(engine.targetPath);
+      const linkTarget = linkTargetOf(engine.targetPath);
+      if (installed && linkTarget && !isInside(linkTarget, canonicalRoot)) linkedRoots.add(linkTarget);
       return {
         ...engine,
-        installed: exists,
+        installed,
+        unmanaged: !installed && present(engine.targetPath),
         linkTarget,
-        installedSkills: exists ? expectedSkills : [],
+        installedSkills: installed ? expectedSkills : [],
       };
     }
-    const installedSkills = expectedSkills.filter((skill) => {
+    const installedSkills = [];
+    const unmanagedSkills = [];
+    for (const skill of expectedSkills) {
       const p = path.join(engine.targetPath, skill);
-      return isSymlink(p) || fs.existsSync(p);
-    });
+      if (owned(p)) {
+        installedSkills.push(skill);
+        const t = linkTargetOf(p);
+        if (t && !isInside(t, canonicalRoot)) linkedRoots.add(path.dirname(path.dirname(t)));
+      } else if (present(p)) {
+        unmanagedSkills.push(skill);
+      }
+    }
     return {
       ...engine,
       installed: installedSkills.length > 0,
+      unmanaged: installedSkills.length === 0 && unmanagedSkills.length > 0,
+      unmanagedSkills,
       linkTarget: null,
       installedSkills,
     };
   });
 
+  const linkedRoot = linkedRoots.size > 0 ? [...linkedRoots][0] : null;
+  let linkedVersion = null;
+  if (linkedRoot) {
+    try {
+      linkedVersion = JSON.parse(fs.readFileSync(path.join(linkedRoot, 'package.json'), 'utf8')).version;
+    } catch {
+      linkedVersion = null;
+    }
+  }
+
   return {
     canonicalRoot,
     canonicalExists: fs.existsSync(canonicalRoot),
     installedVersion: meta?.version || null,
+    linkedRoot,
+    linkedVersion,
     packageVersion: getPackageVersion(),
     skills: expectedSkills,
     engines,
@@ -342,7 +430,7 @@ export function uninstallEngines({
   for (const def of allDefs) {
     if (!targetIds.has(def.id)) continue;
     if (def.mode === 'plugin') {
-      if ((isSymlink(def.targetPath) || fs.existsSync(def.targetPath)) && isManagedTarget(def.targetPath)) {
+      if ((isSymlink(def.targetPath) || fs.existsSync(def.targetPath)) && isManagedTarget(def.targetPath, { canonicalRoot })) {
         if (!dryRun) {
           fs.rmSync(def.targetPath, { recursive: true, force: true });
         }
@@ -351,7 +439,7 @@ export function uninstallEngines({
     } else {
       for (const skill of skillNames) {
         const p = path.join(def.targetPath, skill);
-        if ((isSymlink(p) || fs.existsSync(p)) && isManagedTarget(p)) {
+        if ((isSymlink(p) || fs.existsSync(p)) && isManagedTarget(p, { canonicalRoot })) {
           if (!dryRun) {
             fs.rmSync(p, { recursive: true, force: true });
           }
@@ -366,13 +454,9 @@ export function uninstallEngines({
     engines && engines.length > 0
       ? allDefs.some((def) => {
           if (targetIds.has(def.id)) return false;
-          if (def.mode === 'plugin') {
-            return isSymlink(def.targetPath) || fs.existsSync(def.targetPath);
-          }
-          return [...skillNames].some((skill) => {
-            const p = path.join(def.targetPath, skill);
-            return isSymlink(p) || fs.existsSync(p);
-          });
+          const ours = (p) => (isSymlink(p) || fs.existsSync(p)) && isManagedTarget(p, { canonicalRoot });
+          if (def.mode === 'plugin') return ours(def.targetPath);
+          return [...skillNames].some((skill) => ours(path.join(def.targetPath, skill)));
         })
       : false;
 

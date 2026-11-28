@@ -27,7 +27,8 @@ ${bold('Usage:')}
 ${bold('Init options:')}
   -y, --yes                  Skip interactive prompt and install into all detected tools
   --engine <list>            Comma-separated tools: antigravity,claude-code,codex,cursor
-  --dry-run                  Preview what would be installed without modifying disk
+  --preview, --dry-run       Show what would change without modifying disk
+  --apply                    Accepted for compatibility; init applies by default
   --link                     Link directly to this local checkout (for contributors)
   --undo                     Alias for uninstall
 
@@ -35,6 +36,7 @@ ${bold('Examples:')}
   npx @fabersep/spec init
   npx @fabersep/spec init --yes
   npx @fabersep/spec init --engine antigravity,claude-code
+  npx @fabersep/spec init --preview
   npx @fabersep/spec status
   npx @fabersep/spec uninstall
 `);
@@ -61,8 +63,10 @@ function parseArgs(argv) {
       flags.version = true;
     } else if (arg === '-y' || arg === '--yes') {
       flags.yes = true;
-    } else if (arg === '--dry-run') {
+    } else if (arg === '--dry-run' || arg === '--preview') {
       flags.dryRun = true;
+    } else if (arg === '--apply') {
+      // Backwards-compatible alias: init applies by default.
     } else if (arg === '--link') {
       flags.link = true;
     } else if (arg === '--undo') {
@@ -85,6 +89,12 @@ function parseArgs(argv) {
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+
+  if (flags.engines && flags.engines.length === 0) {
+    throw new Error(
+      'the tool list is empty. Supported tools: antigravity, claude-code, codex, cursor',
+    );
   }
 
   return { command, flags };
@@ -184,6 +194,9 @@ async function runInit(flags) {
     console.log(`  Skills (${summary.skills.length}): ${summary.skills.join(', ')}`);
     for (const r of summary.results) {
       console.log(`  • ${r.label}: ${r.targets.join(', ')}`);
+      for (const stale of r.staleRemoved || []) {
+        console.log(`    would remove skill no longer shipped: ${stale}`);
+      }
     }
     return 0;
   }
@@ -197,7 +210,11 @@ async function runInit(flags) {
       r.mode === 'plugin' ? r.targets[0] : `${r.targets.length} skills -> ${r.targets[0].replace(/\/faber-[^/]+$/, '')}`;
     console.log(`  ${green('✓')} ${bold(r.label.padEnd(22))} ${targetSummary} ${dim(`(${r.method})`)}`);
     if (r.backedUpTo) {
-      console.log(yellow(`    backed up previous directory to: ${r.backedUpTo}`));
+      const backups = Array.isArray(r.backedUpTo) ? r.backedUpTo : [r.backedUpTo];
+      for (const b of backups) console.log(yellow(`    backed up previous directory to: ${b}`));
+    }
+    for (const stale of r.staleRemoved || []) {
+      console.log(dim(`    removed skill no longer shipped: ${stale}`));
     }
   }
   console.log('');
@@ -211,24 +228,33 @@ async function runInit(flags) {
 function runStatus() {
   const st = getStatus();
   console.log(bold(`FaberSEP Spec Status`));
-  console.log(
-    `  Canonical store: ${st.canonicalRoot} ${
-      st.canonicalExists ? green(`(v${st.installedVersion || '?'})`) : yellow('(not installed)')
-    }`,
-  );
+  if (st.canonicalExists || !st.linkedRoot) {
+    console.log(
+      `  Canonical store: ${st.canonicalRoot} ${
+        st.canonicalExists ? green(`(v${st.installedVersion || '?'})`) : yellow('(not installed)')
+      }`,
+    );
+  }
+  if (st.linkedRoot) {
+    console.log(`  Linked checkout: ${st.linkedRoot} ${green(`(v${st.linkedVersion || '?'})`)}`);
+  }
   console.log(`  Skills (${st.skills.length}): ${st.skills.join(', ')}`);
   console.log('');
   for (const e of st.engines) {
     const state = e.installed
       ? green('installed')
-      : e.detected
+      : e.unmanaged
+        ? yellow('not managed (not ours)')
+        : e.detected
         ? yellow('detected (not linked)')
         : dim('not detected');
     const detail = e.installed
       ? e.mode === 'plugin'
         ? e.targetHint
         : `${e.installedSkills.length}/${st.skills.length} skills in ${e.targetHint}`
-      : e.detectHint;
+      : e.unmanaged
+        ? `${e.targetHint} holds files FaberSEP Spec did not create; init backs them up`
+        : e.detectHint;
     console.log(`  ${e.label.padEnd(23)} ${state.padEnd(28)} ${dim(detail)}`);
   }
   return 0;

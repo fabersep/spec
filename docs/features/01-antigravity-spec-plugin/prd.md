@@ -8,7 +8,7 @@ last_updated: 2026-11-26
 
 # Antigravity Spec Plugin — Product Requirements Document (PRD)
 
-> **Purpose:** Defines the `v0.1.0` Antigravity plugin bundle (`faber-spec`) providing project-agnostic documentation templates, governance rules, and four `faber-*` workflow skills. Verification scenarios live in `acceptance_criteria.md`.
+> **Purpose:** Defines the `faber-spec` Antigravity plugin bundle (first shipped in `v0.1.0`): project-agnostic documentation templates, governance rules, and the four core `faber-*` workflow skills. The installer, other tools and `faber-discuss` are feature 02. Verification scenarios live in `acceptance_criteria.md`.
 
 ---
 
