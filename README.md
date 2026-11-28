@@ -1,278 +1,133 @@
-# FaberSEP Spec (`@fabersep/spec`)
+# FaberSEP Spec
 
+[![npm](https://img.shields.io/npm/v/@fabersep/spec.svg)](https://www.npmjs.com/package/@fabersep/spec)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-**Spec-driven engineering templates, governance rules, and `faber-*` agent skills — installed across all your AI coding tools with one command.**
+**Your AI coding assistant builds what it guesses you meant. FaberSEP Spec has it write down what you mean first, in short documents you can read, approve and keep.**
 
-Zero runtime dependencies. Zero template files dumped into your repositories. Zero idle token overhead. Run `npx @fabersep/spec init`, pick your AI coding tools from an interactive checklist, and start turning any codebase or raw idea into verified Architecture docs, Master PRDs, and atomic Given-When-Then BDD specs.
-
----
-
-## Table of Contents
-
-- [Why FaberSEP Spec?](#why-fabersep-spec)
-- [How It Works (The 2-Minute Mental Model)](#how-it-works-the-2-minute-mental-model)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Quickstart](#step-by-step-quickstart)
-- [Everyday Development Cycle](#everyday-development-cycle)
-- [Included Skills](#included-skills)
-- [Supported AI Coding Tools](#supported-ai-coding-tools)
-- [Updating & Uninstalling](#updating--uninstalling)
-- [CLI Command Reference](#cli-command-reference)
-- [Running from Source (Contributors)](#running-from-source-contributors)
-- [Works Great With](#works-great-with)
-- [Documentation & Specs](#documentation--specs)
-- [License](#license)
+<!-- Video: a 60-second walkthrough will go here. -->
 
 ---
 
-## Why FaberSEP Spec?
+## The problem you already know
 
-*"Can't I just ask my AI coding agent to write a spec or paste a Markdown template into my repo?"*
+You ask your AI assistant: *"Add a way for users to export their data."* Ten minutes later it has written 400 lines. It picked CSV when you wanted JSON, it exports everyone's data instead of only the user's own, and it changed a file you didn't want touched.
 
-Ad-hoc prompting produces inconsistent docs that drift from the codebase and hallucinate APIs. Copy-pasting template folders into every repository pollutes your git history and goes stale fast. **`@fabersep/spec` solves all of these at once:**
+So you explain again. And again in the next chat, because it forgot. A month later nobody, human or AI, can say what the export feature is supposed to do, because the only record is the code itself.
 
-| | Ad-Hoc Prompting | Copy-Paste Templates in Repo | `@fabersep/spec` |
-| :--- | :--- | :--- | :--- |
-| **Setup** | Re-explain rules every chat | Copy & sync files in every repo | **One command (`npx @fabersep/spec init`) for all tools** |
-| **Repo Cleanliness** | Unstructured notes | Template & prompt clutter in git | **Zero boilerplate in your repo — only clean `docs/`** |
-| **Accuracy** | Hallucinates APIs & flags | No verification rules | **Evidence-first; unknowns marked `GAP-XX`** |
-| **Idle Token Cost** | Long system prompts | Always-on instruction bloat | **Zero idle tokens; skills load only when invoked** |
-| **Multi-Tool Support** | Tied to one chat | Manual per-tool setup | **Antigravity, Claude Code/Desktop, Codex, Cursor** |
+Asking it to "write a spec first" helps a little, but every time you get a different format. Sometimes it describes functions that don't exist.
 
----
+## What changes with FaberSEP Spec
 
-## How It Works (The 2-Minute Mental Model)
+The same request, with FaberSEP Spec:
 
-```mermaid
-flowchart LR
-    Code["Your Repository<br/>(existing code or new idea)"] --> Arch["1. Architecture<br/>docs/architecture.md<br/>(HOW it is built)"]
-    Arch --> Master["2. Master PRD<br/>docs/master-prd.md<br/>(WHAT & WHY)"]
-    Master --> Feat["3. Feature Specs<br/>docs/features/NN-slug/<br/>prd.md + acceptance_criteria.md"]
-    Feat -->|"Optional second opinion"| Discuss["4. faber-discuss<br/>(Cross-model review loop)"]
-    Discuss --> Build["Confident Implementation<br/>& Verification"]
-```
+1. **Your assistant asks before it builds.** Three to five short questions, each with a suggested answer: *"Only the signed-in user's data? JSON or CSV? What if they have none?"*
+2. **It writes a one-page spec.** What the feature does, what it explicitly won't do, and a list of checks in plain language: *"GIVEN a user with no data, WHEN they export, THEN they get an empty file and a short note."*
+3. **You read a short summary and say yes or no.** Only then does the code get written, and it gets checked against that list.
 
-If you are new to spec-driven development with AI coding agents, here is the whole idea in 4 points:
+The spec stays in your project's `docs/` folder. Next month, the next chat, or a different AI tool reads the same page and knows what the feature is for.
 
-1. **Three separate kinds of truth (never mixed together):**
-   - **Architecture (`docs/architecture.md`) — *HOW the system is built*:** Real folders, modules, data flows, and entry points verified directly from your code.
-   - **Product Requirements (`docs/master-prd.md` and `docs/features/<NN>-<slug>/prd.md`) — *WHAT & WHY*:** Users, workflows, functional requirements (`FR-XX`), and explicit non-goals (`NG-XX`) in plain product language.
-   - **Acceptance Criteria (`docs/features/<NN>-<slug>/acceptance_criteria.md`) — *HOW we verify it*:** Atomic `GIVEN / WHEN / THEN` BDD scenarios (`AC-XX`) mapped 1-to-1 to `FR-XX`, with zero internal code identifiers.
-2. **Evidence first, zero hallucination:** When documenting an existing repo, skills verify real files before writing and record missing information openly as `GAP-XX` instead of guessing.
-3. **Installed globally once, clean in every repo:** `npx @fabersep/spec init` installs one canonical copy under `~/.faber/spec/` and links it into your AI coding tools. Your project repositories stay clean — only the generated `docs/` files are written.
-4. **Optional cross-model review (`faber-discuss`):** Before coding a tricky feature, your active agent can debate the design and spec with a second read-only model (`claude` or `agy` CLI) and hand you a short key-point summary + owner questions.
+## Why you can trust it
+
+- **It checks before it writes.** When it documents an existing project, it reads the real files first. What it can't confirm, it lists as an open question instead of making it up.
+- **Same shape every time.** Every project gets the same few documents, so you always know where to look.
+- **Your projects stay clean.** It is installed once on your computer. Nothing is added to your repositories except the documents you ask for.
+- **It costs nothing until you use it.** The instructions load only when you call one of its skills, so everyday chats stay as fast and cheap as before.
+- **Works with the tools you already use:** Claude Code, Antigravity, OpenAI Codex and Cursor. Switch tools and the documents still mean the same thing.
+- **Free and open source** (Apache-2.0). No account and no server: it runs inside the AI tool you already use.
 
 ---
 
-## Prerequisites
+## Get started (about 2 minutes)
 
-- **Node.js 20 or newer** (`node -v` to check) — needed for `npx @fabersep/spec init`
-- **One or more supported AI coding tools:** Antigravity, Claude Code / Claude Desktop, OpenAI Codex, or Cursor
-- *(Optional)* **Python 3** + `agy` or `claude` CLI — only needed if you use `faber-discuss`
+You need **Node.js 20 or newer**. To check, run `node -v` in a terminal.
 
-You do **not** need to clone this repository or install anything globally to get started.
-
----
-
-## Step-by-Step Quickstart
-
-Follow these 4 steps. Setup takes under 30 seconds and is completely reversible.
-
-### Step 1: Install into your AI coding tools
-
-Run:
+**1. Install it**
 
 ```bash
 npx @fabersep/spec init
 ```
 
-The installer automatically scans your machine for installed AI coding tools (`~/.gemini`, `~/.claude`, `~/.codex`, `~/.cursor`) and opens an interactive checklist with detected tools pre-selected:
+It finds the AI tools on your computer and shows them as a checklist, already ticked. Press `Enter`. That's all. It keeps a backup of anything it would replace, and you can remove it any time with `npx @fabersep/spec uninstall`.
 
-```text
-FaberSEP Spec v0.2.0 — Select AI coding tools to install into:
-Detected tools are pre-selected. Uncheck any tool to skip or remove it, then press Enter.
+Want to see what it would do first? Run `npx @fabersep/spec init --preview`: nothing is written.
 
-  > [x] Antigravity             (detected: ~/.gemini)
-    [x] Claude Code / Desktop   (detected: ~/.claude)
-
-  2 selected  •  ↑/↓ move  •  Space toggle  •  a toggle all  •  Enter install  •  q cancel
-```
-
-- Use **↑ / ↓** to move, **Space** to check or uncheck any tool, and **Enter** to install.
-- Prefer a non-interactive one-liner?
-  ```bash
-  # Install into all auto-detected tools without prompting
-  npx @fabersep/spec init --yes
-
-  # Or target specific tools explicitly
-  npx @fabersep/spec init --engine antigravity,claude-code,codex,cursor
-
-  # Preview what would change without touching disk
-  npx @fabersep/spec init --yes --dry-run
-  ```
-
-**What this does:**
-- Stages one clean copy of the rules, templates, manifests, and 5 `faber-*` skills in `~/.faber/spec/`.
-- Wires each selected tool automatically (native plugin link for Antigravity and Claude Code/Desktop; per-skill links for Codex and Cursor).
-- Never overwrites unmanaged folders — if a non-FaberSEP directory exists at a target path, it backs it up to `.bak.<timestamp>` first.
-
-Verify your installation anytime:
+**2. Check it**
 
 ```bash
 npx @fabersep/spec status
 ```
 
-### Step 2: Document an existing project (Brownfield)
+Your tools should say `installed`.
 
-Open any repository in your AI coding tool (start a new session so it loads the newly installed skills) and run these three prompts in order:
+**3. Start a new chat in your AI tool and try it**
 
-1. **Map the codebase reality:**
-   > *"Run `faber-init-arch` to document this repository's architecture."*
-   - Creates `docs/architecture.md` grounded in real source files.
-2. **Capture product intent:**
-   > *"Run `faber-init-prd` to generate the Master PRD."*
-   - Creates `docs/master-prd.md` with vision, personas, journeys, non-goals, and gaps.
-3. **Extract existing features into PRDs + BDDs:**
-   > *"Run `faber-extract-features` to extract existing feature PRDs and BDDs."*
-   - Creates `docs/features/README.md` and `docs/features/<NN>-<slug>/{prd.md, acceptance_criteria.md}` for each capability.
+For something new you want to build:
 
-### Step 3: Specify a new feature before coding (Greenfield)
+> *"Run faber-new-feature for: users can export their data."*
 
-Whenever you want to build something new, ask your agent:
+It asks its questions, then writes `docs/features/01-data-export/prd.md` (what and why) and `acceptance_criteria.md` (how to check it). Read the summary it gives you and answer yes, or tell it what to change.
 
-> *"Run `faber-new-feature` for `<your feature idea>`."*
+**Already have a project with code?** Ask it to describe what is there, in this order:
 
-The agent reads your existing `docs/master-prd.md` and `docs/architecture.md`, asks **3–5 short clarifying questions** (caller, edge cases, state, compatibility, non-goals), and writes a traceable `prd.md` + `acceptance_criteria.md` for your approval before writing a single line of code.
-
-### Step 4: (Optional) Stress-test a design with a second model
-
-For non-trivial features or architectural changes, ask your agent:
-
-> *"Run `faber-discuss` to review this design and spec with a second model."*
-
-Your active agent (`author`) briefs a read-only external reviewer (`claude` or `agy` CLI), works through numbered findings (`F-1`, `F-2`, ...), enforces token budgets, saves a full audit ledger, and hands you a concise summary + numbered owner questions (`OQ-1`, ...).
+> *"Run faber-init-arch."* → `docs/architecture.md`: how the project is built.
+>
+> *"Run faber-init-prd."* → `docs/master-prd.md`: what the product does and for whom.
+>
+> *"Run faber-extract-features."* → one short spec per existing feature.
 
 ---
 
-## Everyday Development Cycle
+## A normal day with it
 
-```mermaid
-flowchart LR
-    Idea["New Feature Idea<br/>or Bug Fix"] --> NewFeat["faber-new-feature<br/>(3-5 questions -> PRD + BDD)"]
-    NewFeat -->|"Complex change?"| Disc["faber-discuss<br/>(Cross-model review)"]
-    NewFeat -->|"Straightforward"| Approve["Human Reviews<br/>Key-Point Summary"]
-    Disc --> Approve
-    Approve --> Code["Implement Against<br/>FR-XX & AC-XX"]
-    Code --> Refresh["Refresh docs/architecture.md<br/>if boundaries changed"]
+- **Before building something:** *"Run faber-new-feature for …"*. Answer the questions, approve the summary.
+- **While building:** your assistant works against the checklist in the spec, and you can ask it *"Which checks pass?"*.
+- **For a big or risky change:** *"Run faber-discuss on this design."* A second AI model (for example Gemini reviewing Claude's plan) looks for holes. You get a short summary and a few numbered questions to answer.
+- **When the project changes shape:** run `faber-init-arch` again; it updates only what changed.
+
+A check in a spec looks like this:
+
+```markdown
+#### Scenario AC-03: Export with no data
+- **GIVEN:** A signed-in user who has no saved items
+- **WHEN:** They choose "Export my data"
+- **THEN:** They receive an empty JSON file AND see the note "Nothing to export yet".
 ```
 
 ---
 
-## Included Skills
+## Common questions
 
-All skills in `@fabersep/spec` use the `faber-` prefix to prevent naming collisions with other plugins.
+**Do I need to know how to write specs?**
+No. The assistant asks you plain questions and writes the document. You only read the summary and say yes or no.
 
-| Skill | When to Use It | Output |
-| :--- | :--- | :--- |
-| `faber-init-arch` | Documenting an existing codebase or drafting architecture for a new project | `docs/architecture.md` |
-| `faber-init-prd` | Synthesizing product vision, personas, journeys, non-goals, and KPIs | `docs/master-prd.md` |
-| `faber-extract-features` | Bringing an existing repo up to spec-driven standards | `docs/features/README.md` + per-feature `prd.md` & `acceptance_criteria.md` |
-| `faber-new-feature` | Clarifying and specifying a new feature before writing code | `docs/features/<NN>-<slug>/{prd.md, acceptance_criteria.md}` |
-| `faber-discuss` | Running a read-only cross-model design & spec review (`agy` or `claude` CLI) | Review ledger (`decisions.md`, `stats.md`, `summary.md`) + reviewed PRD/BDD |
+**Does it slow down my assistant or cost more?**
+No. It stays out of the way until you call one of its skills.
 
----
+**What does it put in my project?**
+Only Markdown files under `docs/`. You can edit or delete them like any other file.
 
-## Supported AI Coding Tools
+**Does it work without code yet, for a brand-new idea?**
+Yes. `faber-init-prd` and `faber-new-feature` ask you about the idea and write the documents from your answers.
 
-| Tool | Detection Path | Installed Location | Layout |
-| :--- | :--- | :--- | :--- |
-| **Antigravity** | `~/.gemini` | `~/.gemini/config/plugins/faber-spec` | Full native plugin (`plugin.json` + all skills) |
-| **Claude Code / Desktop** | `~/.claude` | `~/.claude/skills/faber-spec` | Full Claude plugin (`.claude-plugin/plugin.json` + all skills) |
-| **OpenAI Codex** | `~/.codex` | `~/.codex/skills/faber-*` | Per-skill links pointing to `~/.faber/spec/skills/` |
-| **Cursor** | `~/.cursor` | `~/.cursor/skills/faber-*` | Per-skill links pointing to `~/.faber/spec/skills/` |
+**How do I update or remove it?**
+`npx @fabersep/spec@latest init --yes` updates it. `npx @fabersep/spec uninstall` removes it and leaves your `docs/` folders alone. See [Updating and removing](docs/guide.md#updating-and-removing).
 
-*(All 5 skills resolve `rules/` and `templates/` both from relative plugin paths and from `~/.faber/spec/`, so every tool works identically.)*
+**Something went wrong.**
+Run `npx @fabersep/spec status` first. Then check [Troubleshooting](docs/guide.md#troubleshooting) or [open an issue](https://github.com/fabersep/spec/issues).
 
 ---
 
-## Updating & Uninstalling
+## Going further
 
-### Update to the latest version
+- **[User guide and reference](docs/guide.md):** what is installed where, every command and flag, the documents and skills in detail, how `faber-discuss` works.
+- **[How this project is specified](docs/features/README.md):** FaberSEP Spec is documented with its own standard ([Master PRD](docs/master-prd.md), [architecture](docs/architecture.md)).
+- **[Contributing](CONTRIBUTING.md)** and **[Changelog](CHANGELOG.md)**.
 
-Re-run `init` with `@latest` — it safely refreshes `~/.faber/spec/` and keeps your tool links intact:
+Works well with **[FaberSEP Memory](https://github.com/fabersep/memory)** (your assistant remembers the rules you approve, across tools) and **[FaberSEP Atlas](https://github.com/fabersep/atlas)** (a code map that lets the skills read far fewer files). Each one also works on its own.
 
-```bash
-npx @fabersep/spec@latest init --yes
-```
-
-### Uninstall cleanly
-
-Remove all tool links and `~/.faber/spec/` (never touches `docs/` inside your project repos):
-
-```bash
-npx @fabersep/spec uninstall
-```
-
-Or remove from a single tool only:
-
-```bash
-npx @fabersep/spec uninstall --engine cursor
-```
-
----
-
-## CLI Command Reference
-
-| Command | Description |
-| :--- | :--- |
-| `npx @fabersep/spec init` | Auto-detect AI tools and open the interactive checkbox installer. |
-| `npx @fabersep/spec init --yes` | Install into all auto-detected tools without prompting. |
-| `npx @fabersep/spec init --engine <list>` | Install into specific tools (`antigravity`, `claude-code`, `codex`, `cursor`). |
-| `npx @fabersep/spec init --dry-run` | Preview planned changes without modifying disk. |
-| `npx @fabersep/spec init --link` | Link tools directly to a local Git checkout (for contributors). |
-| `npx @fabersep/spec status` | Show installed version, skills, and connected AI coding tools. |
-| `npx @fabersep/spec uninstall [--engine <list>]` | Remove managed links and `~/.faber/spec/` cleanly. |
-
----
-
-## Running from Source (Contributors)
-
-If you want to hack on templates, rules, or skills locally and see changes immediately in your AI tools:
-
-```bash
-git clone https://github.com/fabersep/spec.git
-cd spec
-npm test
-node src/cli.mjs init --link
-```
-
-`--link` points your selected AI tools directly at your local checkout instead of copying to `~/.faber/spec/`.
-
----
-
-## Works Great With
-
-`@fabersep/spec` works completely standalone in any repository. If you want optional companion tools from the same open-source suite:
-
-- **[FaberSEP Memory (`@fabersep/memory`)](https://github.com/fabersep/memory):** Prefix-cache-first, Git-backed Markdown memory across all your AI coding tools.
-- **[FaberSEP Atlas (`@fabersep/atlas`)](https://github.com/fabersep/atlas):** Deterministic AST code map & MCP server. When Atlas MCP is connected, `faber-init-arch`, `faber-init-prd`, and `faber-extract-features` automatically use it to map codebases with far fewer tokens.
-- **[FaberSEP Blueprints](https://fabersep.dev):** Build-verified project scaffolds and recipes.
-
----
-
-## Documentation & Specs
-
-This repository dogfoods its own FaberSEP Spec standard:
-
-- [Master PRD](docs/master-prd.md)
-- [Architecture Guide](docs/architecture.md)
-- [Features Index](docs/features/README.md)
-  - [01 — Core Spec Plugin](docs/features/01-antigravity-spec-plugin/prd.md)
-  - [02 — Multi-Agent CLI Installer & Cross-Model Discuss](docs/features/02-cli-installer-and-cross-model-discuss/prd.md)
-
----
+FaberSEP Spec is part of [FaberSEP](https://github.com/fabersep), open-source tools that help AI coding assistants work with more discipline.
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+[Apache-2.0](LICENSE)

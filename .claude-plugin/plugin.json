@@ -1,7 +1,7 @@
 {
   "name": "faber-spec",
   "description": "Spec-driven engineering templates and skills (Master PRD, Architecture, Feature PRD, BDD Acceptance Criteria, and Cross-Model Design Discussion) for AI coding agents.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "FaberSEP",
     "url": "https://fabersep.dev"

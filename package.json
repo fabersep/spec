@@ -1,6 +1,6 @@
 {
   "name": "@fabersep/spec",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "Spec-driven engineering templates, documentation rules, and faber-* agent skills (Antigravity, Claude Code, Codex, Cursor) with a one-command interactive installer.",
   "license": "Apache-2.0",
@@ -39,7 +39,8 @@
     "!skills/**/__pycache__",
     "!**/*.pyc",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=20"

@@ -112,7 +112,7 @@ sequenceDiagram
 
 | Concern | Status | Implementation / Approach | Location |
 | :--- | :--- | :--- | :--- |
-| **Error Handling** | `Implemented` | Explicit CLI exit codes, unknown-engine validation, Windows symlink-to-copy fallback, non-destructive `.bak` backup for unmanaged directories; structured exit codes (`0,2,3,4,5`) in `discuss_round.py` | `src/cli.mjs`, `src/installer.mjs`, `skills/faber-discuss/discuss_round.py` |
+| **Error Handling** | `Implemented` | Explicit CLI exit codes, unknown-engine validation, Windows symlink-to-copy fallback, non-destructive `.bak` backup for unmanaged directories, ownership check so `uninstall` and update cleanup touch only FaberSEP Spec's own links; structured exit codes (`0,2,3,4,5`) in `discuss_round.py` | `src/cli.mjs`, `src/installer.mjs`, `skills/faber-discuss/discuss_round.py` |
 | **Configuration & Defaults** | `Implemented` | Zero-config engine auto-detection (`~/.gemini`, `~/.claude`, `~/.codex`, `~/.cursor`) + `FABER_USER_HOME` override for isolated tests | `src/installer.mjs` |
 | **Caching & Incrementality** | `Implemented` | On-demand skill loading (zero always-on rule injection); 7-minute warm prompt-cache tracking in `faber-discuss` | `skills/`, `skills/faber-discuss/discuss_round.py` |
 | **Security & Privacy** | `Implemented` | 100% local execution, zero telemetry, zero external npm dependencies; strict read-only tool allow/deny lists for `faber-discuss` reviewers | Entire repo, `skills/faber-discuss/discuss_round.py` |

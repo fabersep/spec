@@ -1,8 +1,9 @@
 ---
+trigger: manual
 id: faber.documentation-rules
 type: documentation_rules
 status: verified
-version: 0.2.0
+version: 0.2.1
 ---
 
 # FaberSEP Documentation Standards & Governance Rules

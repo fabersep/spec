@@ -11,7 +11,7 @@ Run a structured, read-only second-opinion loop with an external reviewer CLI (`
 - Start **only** when the user explicitly asks to run `faber-discuss` / `discuss` (never on your own initiative).
 - Respond to the user in the user's language; write every ledger file, brief, prompt, and spec in English (quoting the user's own constraints verbatim with an English gloss).
 - Never let the reviewer edit files, run shell commands, or launch subagents/workflows.
-- Never approve a spec, commit, push, or move project board cards inside this skill.
+- Never approve a spec, commit, push, or move task-tracker items inside this skill.
 - **Testing the skill itself:** always pass `--test` to `discuss_round.py` so only the cheapest test model is used (`gemini-3.8-flash-low` for `agy`, `haiku` for `claude`).
 
 ---
